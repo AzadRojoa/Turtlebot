@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'follow_me = follow_me.follow_me:main'
+            'follow_me = follow_me.follow_me:main',
+            'follow = follow_me.test_follow:main'
         ],
     },
 )

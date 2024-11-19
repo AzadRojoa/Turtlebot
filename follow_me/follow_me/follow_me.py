@@ -50,7 +50,7 @@ class ScanFront(Node):
     def scan_callback(self, msg):
         for i in msg.ranges:
             if msg.ranges.index(i) < 13:
-                print(i)
+                print(f'index :{msg.ranges.index(i)}, et mesure:{i} ')
 
     def cmd_vel_raw_callback(self, msg):
         self.linear_velocity = msg.linear.x
