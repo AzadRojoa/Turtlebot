@@ -1,88 +1,121 @@
-from geometry_msgs.msg import PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+from rclpy.node import Node
+import time
 
-"""
-Basic navigation demo to go to pose and return to initial position.
-"""
+class InitialPosePublisher(Node):
+    def __init__(self):
+        super().__init__('initial_pose_publisher')
+        self.publisher = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
+
+    def publish_initial_pose(self, x, y, orientation_z, orientation_w):
+        initial_pose_msg = PoseWithCovarianceStamped()
+        initial_pose_msg.header.frame_id = 'map'
+        initial_pose_msg.header.stamp = self.get_clock().now().to_msg()
+
+        # Définir la position initiale
+        initial_pose_msg.pose.pose.position.x = x
+        initial_pose_msg.pose.pose.position.y = y
+        initial_pose_msg.pose.pose.orientation.z = orientation_z
+        initial_pose_msg.pose.pose.orientation.w = orientation_w
+
+        # Publier la pose
+        self.publisher.publish(initial_pose_msg)
+        self.get_logger().info(f"Pose initiale publiée : x={x}, y={y}, z={orientation_z}, w={orientation_w}")
 
 def main():
+    # Initialiser le système ROS 2
     rclpy.init()
 
+    # Créer un noeud pour publier la pose initiale
+    initial_pose_publisher = InitialPosePublisher()
+
+    # Publier la pose initiale
+    initial_pose_publisher.publish_initial_pose(0.0, 0.0, 0.0, 1.0)
+    time.sleep(1)  # Attendre un court instant pour assurer la publication
+
+    # Créer un navigateur pour contrôler le robot
     navigator = BasicNavigator()
 
-    # Set the robot's initial pose
+    # Définir la pose initiale via le navigateur (optionnel, redondance pour AMCL)
     initial_pose = PoseStamped()
     initial_pose.header.frame_id = 'map'
     initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.03
-    initial_pose.pose.position.y = 0.01
-    initial_pose.pose.orientation.z = 0.0
+    initial_pose.pose.position.x = 0.0  # Point de départ X
+    initial_pose.pose.position.y = 0.0  # Point de départ Y
+    initial_pose.pose.orientation.z = 0.0  # Orientation initiale
     initial_pose.pose.orientation.w = 1.0
     navigator.setInitialPose(initial_pose)
 
-    # Activate navigation
+    # Activer la navigation
     navigator.waitUntilNav2Active()
 
-    # First goal pose
+    print("Robot initialisé et prêt pour la navigation.")
+
+    # Vérifier que le robot est bien localisé
+    print("En attente de localisation AMCL...")
+    time.sleep(2)
+
+    # Définir un premier objectif
     goal_pose1 = PoseStamped()
     goal_pose1.header.frame_id = 'map'
     goal_pose1.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose1.pose.position.x = 3.81
-    goal_pose1.pose.position.y = 1.1
-    goal_pose1.pose.orientation.w = 1.0
+    goal_pose1.pose.position.x = 3.5  # Objectif X
+    goal_pose1.pose.position.y = 2.0  # Objectif Y
     goal_pose1.pose.orientation.z = 0.0
+    goal_pose1.pose.orientation.w = 1.0
 
-
-    # Navigate to the first goal
+    # Aller vers le premier objectif
+    print("Navigation vers le premier objectif...")
     navigator.goToPose(goal_pose1)
 
     while not navigator.isTaskComplete():
         feedback = navigator.getFeedback()
         if feedback:
             print(
-                f"Estimated time of arrival: "
-                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} seconds."
+                f"Temps estimé pour atteindre l'objectif : "
+                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} secondes."
             )
 
-    # Check the result of the first navigation task
+    # Vérifier le résultat de la navigation
     result = navigator.getResult()
     if result == TaskResult.SUCCEEDED:
-        print('First goal succeeded! Returning to initial position...')
-    elif result == TaskResult.CANCELED:
-        print('First goal was canceled! Returning to initial position anyway...')
+        print("Objectif atteint avec succès !")
     elif result == TaskResult.FAILED:
-        print('First goal failed! Returning to initial position anyway...')
+        print("La navigation a échoué, retour au point de départ.")
     else:
-        print('First goal has an invalid return status! Returning to initial position anyway...')
+        print("Navigation annulée ou statut invalide, retour au point de départ.")
 
-    # Return to the initial position
+    # Retour au point de départ
+    print("Retour à la position initiale...")
     navigator.goToPose(initial_pose)
 
     while not navigator.isTaskComplete():
         feedback = navigator.getFeedback()
         if feedback:
             print(
-                f"Returning to initial position. "
-                f"Estimated time of arrival: "
-                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} seconds."
+                f"Temps estimé pour retourner au point de départ : "
+                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} secondes."
             )
 
-    # Final result for returning to the initial position
+    # Vérifier le retour au point de départ
     result = navigator.getResult()
     if result == TaskResult.SUCCEEDED:
-        print('Successfully returned to initial position!')
-    elif result == TaskResult.CANCELED:
-        print('Return to initial position was canceled!')
+        print("Retour au point de départ réussi !")
     elif result == TaskResult.FAILED:
-        print('Failed to return to initial position!')
+        print("Retour au point de départ échoué !")
     else:
-        print('Return to initial position has an invalid return status!')
+        print("Retour au point de départ annulé ou statut invalide.")
 
-    # Shutdown the navigator
+    # Arrêter le robot proprement
     navigator.lifecycleShutdown()
+    print("Navigation terminée.")
 
+    # Détruire le noeud de publication
+    initial_pose_publisher.destroy_node()
+    rclpy.shutdown()
     exit(0)
 
 if __name__ == '__main__':
