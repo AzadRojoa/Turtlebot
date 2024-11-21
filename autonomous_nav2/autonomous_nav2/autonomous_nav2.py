@@ -9,6 +9,9 @@ class InitialPosePublisher(Node):
     def __init__(self):
         super().__init__('initial_pose_publisher')
         self.publisher = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
+        timer_period = 0.5  # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.i = 0
 
     def publish_initial_pose(self, x, y, orientation_z, orientation_w):
         initial_pose_msg = PoseWithCovarianceStamped()
@@ -21,9 +24,17 @@ class InitialPosePublisher(Node):
         initial_pose_msg.pose.pose.orientation.z = orientation_z
         initial_pose_msg.pose.pose.orientation.w = orientation_w
 
+
         # Publier la pose
         self.publisher.publish(initial_pose_msg)
         self.get_logger().info(f"Pose initiale publiée : x={x}, y={y}, z={orientation_z}, w={orientation_w}")
+
+    def timer_callback(self):
+        msg = PoseWithCovarianceStamped()
+        msg.data = 'Hello World: %d' % self.i
+        self.publisher_.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data)
+        self.i += 1
 
 def main():
     # Initialiser le système ROS 2
@@ -36,6 +47,9 @@ def main():
     initial_pose_publisher.publish_initial_pose(0.0, 0.0, 0.0, 1.0)
     time.sleep(1)  # Attendre un court instant pour assurer la publication
 
+    # Lancer le spin pour maintenir le noeud actif
+    rclpy.spin(initial_pose_publisher)
+    
     # Créer un navigateur pour contrôler le robot
     navigator = BasicNavigator()
 
