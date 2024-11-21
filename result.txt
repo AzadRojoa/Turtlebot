@@ -1,0 +1,21 @@
+Challenge 1 result for student Surname Name
+
+# Phase 1:
+result: success/failure
+comment: anything that you think should be known by the reviewer by it good or bad
+(keep it short). For example: "No collision during this phase but a close call
+near the door caused by..."
+``
+# Phase 2:
+result: success/failure
+static_obtacle: yes/no
+dynamic_obtacle: yes/no
+blocked_path: yes/no
+comment: anything that you think should be known by the reviewer by it good or bad
+(keep it short).
+``
+# Phase 3:
+result: success/failure
+comment: anything that you think should be known by the reviewer by it good or bad
+(keep it short)."
+``
