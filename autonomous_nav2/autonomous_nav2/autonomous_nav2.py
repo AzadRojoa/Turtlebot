@@ -1,136 +1,139 @@
+from geometry_msgs.msg import PoseStamped
+from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 import rclpy
 from rclpy.duration import Duration
-from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
+from rclpy.qos import QoSProfile
+from rclpy.qos import qos_profile_sensor_data
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
-import time
 
-class InitialPosePublisher(Node):
+class GoHome(Node):
     def __init__(self):
-        super().__init__('initial_pose_publisher')
-        self.publisher = self.create_publisher(PoseWithCovarianceStamped, '/initialpose', 10)
-        timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
+        super().__init__('go_home')
+        self.initial_pose_x = 0
+        self.initial_pose_y = 0
+        self.initial_orientation_z = 0
+        self.initial_orientation_w = 0
 
-    def publish_initial_pose(self, x, y, orientation_z, orientation_w):
-        initial_pose_msg = PoseWithCovarianceStamped()
-        initial_pose_msg.header.frame_id = 'map'
-        initial_pose_msg.header.stamp = self.get_clock().now().to_msg()
+        self.actual_pose_x = 0
+        self.actual_pose_y = 0
+        self.actual_orientation_z = 0
+        self.actual_orientation_w = 0
+        qos = QoSProfile(depth=5)
 
-        # Définir la position initiale
-        initial_pose_msg.pose.pose.position.x = x
-        initial_pose_msg.pose.pose.position.y = y
-        initial_pose_msg.pose.pose.orientation.z = orientation_z
-        initial_pose_msg.pose.pose.orientation.w = orientation_w
-
-
-        # Publier la pose
-        self.publisher.publish(initial_pose_msg)
-        self.get_logger().info(f"Pose initiale publiée : x={x}, y={y}, z={orientation_z}, w={orientation_w}")
-
-    def timer_callback(self):
-        msg = PoseWithCovarianceStamped()
-        msg.data = 'Hello World: %d' % self.i
-        self.publisher_.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data)
-        self.i += 1
-
-def main():
-    # Initialiser le système ROS 2
-    rclpy.init()
-
-    # Créer un noeud pour publier la pose initiale
-    initial_pose_publisher = InitialPosePublisher()
-
-    # Publier la pose initiale
-    initial_pose_publisher.publish_initial_pose(0.0, 0.0, 0.0, 1.0)
-    time.sleep(1)  # Attendre un court instant pour assurer la publication
-
-    # Lancer le spin pour maintenir le noeud actif
-    rclpy.spin(initial_pose_publisher)
+        self.pose = self.create_subscription(
+            PoseWithCovarianceStamped,
+            'amcl_pose',
+            self.odom_callback,
+            qos_profile=qos_profile_sensor_data)
+        self.get_logger().info(f'oui')
     
-    # Créer un navigateur pour contrôler le robot
-    navigator = BasicNavigator()
+    def odom_callback(self, msg):
+        self.get_logger().info(f'start')
+        navigator = BasicNavigator()
+        if self.initial_pose_x == 0 and self.initial_pose_y == 0 and self.initial_orientation_z == 0 :
+            self.initial_pose_x = msg.pose.pose.position.x
+            self.initial_pose_y = msg.pose.pose.position.y
+            self.initial_orientation_z = msg.pose.pose.orientation.z
+            self.initial_orientation_w = msg.pose.pose.orientation.w
+            # Set our demo's initial pose
+            initial_pose = PoseStamped()
+            initial_pose.header.frame_id = 'map'
+            initial_pose.header.stamp = navigator.get_clock().now().to_msg()
+            initial_pose.pose.position.x = self.initial_pose_x
+            initial_pose.pose.position.y = self.initial_pose_y
+            initial_pose.pose.orientation.z = self.initial_orientation_z
+            initial_pose.pose.orientation.w = self.initial_orientation_w
+            navigator.setInitialPose(initial_pose)
 
-    # Définir la pose initiale via le navigateur (optionnel, redondance pour AMCL)
-    initial_pose = PoseStamped()
-    initial_pose.header.frame_id = 'map'
-    initial_pose.header.stamp = navigator.get_clock().now().to_msg()
-    initial_pose.pose.position.x = 0.0  # Point de départ X
-    initial_pose.pose.position.y = 0.0  # Point de départ Y
-    initial_pose.pose.orientation.z = 0.0  # Orientation initiale
-    initial_pose.pose.orientation.w = 1.0
-    navigator.setInitialPose(initial_pose)
+            navigator.waitUntilNav2Active()
 
-    # Activer la navigation
-    navigator.waitUntilNav2Active()
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = 'map'
+            goal_pose.header.stamp = navigator.get_clock().now().to_msg()
+            goal_pose.pose.position.x = 2.0
+            goal_pose.pose.position.y = 0.0
+            goal_pose.pose.orientation.w = 1.0
+            goal_pose.pose.orientation.z = 0.0
 
-    print("Robot initialisé et prêt pour la navigation.")
+        else :
+            self.actual_pose_x = msg.pose.pose.position.x
+            self.actual_pose_y = msg.pose.pose.position.y
+            self.actual_orientation_z = msg.pose.pose.orientation.z
+            self.actual_orientation_w = msg.pose.pose.orientation.w
 
-    # Vérifier que le robot est bien localisé
-    print("En attente de localisation AMCL...")
-    time.sleep(2)
+        
+        # goal_pose.pose.position.x = self.initial_pose_x
+        # goal_pose.pose.position.y = self.initial_pose_y
+        # goal_pose.pose.orientation.z = self.initial_orientation_z
+        goal_pose.pose.position.x = 2.0
+        goal_pose.pose.position.y = 0.0
+        goal_pose.pose.orientation.z = self.initial_orientation_z
+        navigator.goToPose(goal_pose)
+        i = 0
+        while not navigator.isTaskComplete():
+            i = i + 1
+            feedback = navigator.getFeedback()
+            if feedback and i % 5 == 0:
+                print(
+                    'Estimated time of arrival: '
+                    + '{0:.0f}'.format(
+                        Duration.from_msg(feedback.estimated_time_remaining).nanoseconds
+                        / 1e9
+                    )
+                    + ' seconds.'
+                )        
+        goal_pose.pose.position.x = self.initial_pose_x
+        goal_pose.pose.position.y = self.initial_pose_y
+        goal_pose.pose.orientation.z = self.initial_orientation_z
+        navigator.goToPose(goal_pose)
+        i = 0
+        while not navigator.isTaskComplete():
+            i = i + 1
+            feedback = navigator.getFeedback()
+            if feedback and i % 5 == 0:
+                print(
+                    'Estimated time of arrival: '
+                    + '{0:.0f}'.format(
+                        Duration.from_msg(feedback.estimated_time_remaining).nanoseconds
+                        / 1e9
+                    )
+                    + ' seconds.'
+                )
+        # Do something depending on the return code
+        result = navigator.getResult()
+        if result == TaskResult.SUCCEEDED:
+            print('Goal succeeded!')
+        elif result == TaskResult.CANCELED:
+            print('Goal was canceled!')
+        elif result == TaskResult.FAILED:
+            print('Goal failed!')
+        else:
+            print('Goal has an invalid return status!')
 
-    # Définir un premier objectif
-    goal_pose1 = PoseStamped()
-    goal_pose1.header.frame_id = 'map'
-    goal_pose1.header.stamp = navigator.get_clock().now().to_msg()
-    goal_pose1.pose.position.x = 3.5  # Objectif X
-    goal_pose1.pose.position.y = 2.0  # Objectif Y
-    goal_pose1.pose.orientation.z = 0.0
-    goal_pose1.pose.orientation.w = 1.0
+        navigator.lifecycleShutdown()
+        self.destroy_node()
+        rclpy.shutdown()
 
-    # Aller vers le premier objectif
-    print("Navigation vers le premier objectif...")
-    navigator.goToPose(goal_pose1)
+def main(args=None):
+    rclpy.init(args=args)
+    logger = rclpy.logging.get_logger('main_logger')
 
-    while not navigator.isTaskComplete():
-        feedback = navigator.getFeedback()
-        if feedback:
-            print(
-                f"Temps estimé pour atteindre l'objectif : "
-                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} secondes."
-            )
+    go_home = GoHome()
 
-    # Vérifier le résultat de la navigation
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print("Objectif atteint avec succès !")
-    elif result == TaskResult.FAILED:
-        print("La navigation a échoué, retour au point de départ.")
-    else:
-        print("Navigation annulée ou statut invalide, retour au point de départ.")
+    try:
+        rclpy.spin(go_home)
+    except KeyboardInterrupt:
+        logger.info("Interruption manuelle détectée.")
+    finally:
+        # Destruction explicite du noeud
+        go_home.destroy_node()
+        logger.info("Nœud détruit. Retour au main().")
 
-    # Retour au point de départ
-    print("Retour à la position initiale...")
-    navigator.goToPose(initial_pose)
-
-    while not navigator.isTaskComplete():
-        feedback = navigator.getFeedback()
-        if feedback:
-            print(
-                f"Temps estimé pour retourner au point de départ : "
-                f"{Duration.from_msg(feedback.estimated_time_remaining).nanoseconds / 1e9:.0f} secondes."
-            )
-
-    # Vérifier le retour au point de départ
-    result = navigator.getResult()
-    if result == TaskResult.SUCCEEDED:
-        print("Retour au point de départ réussi !")
-    elif result == TaskResult.FAILED:
-        print("Retour au point de départ échoué !")
-    else:
-        print("Retour au point de départ annulé ou statut invalide.")
-
-    # Arrêter le robot proprement
-    navigator.lifecycleShutdown()
-    print("Navigation terminée.")
-
-    # Détruire le noeud de publication
-    initial_pose_publisher.destroy_node()
+    # Destruction explicite du noeud
+    logger.info("Ceci est un message depuis le main()")
     rclpy.shutdown()
-    exit(0)
+
 
 if __name__ == '__main__':
     main()
