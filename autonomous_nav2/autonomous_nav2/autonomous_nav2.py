@@ -40,21 +40,7 @@ class GoHome(Node):
     def message_callback(self,msg):
         if msg.data :
             self.get_logger().info(f'start')
-
-            self.start_go_home = True
-            i = 0
-            while not self.navigator.isTaskComplete():
-                i = i + 1
-                feedback = self.navigator.getFeedback()
-                if feedback and i % 5 == 0:
-                    print(
-                        'Estimated time of arrival: '
-                        + '{0:.0f}'.format(
-                            Duration.from_msg(feedback.estimated_time_remaining).nanoseconds
-                            / 1e9
-                        )
-                        + ' seconds.'
-                    )        
+     
             self.goal_pose.pose.position.x = self.initial_pose_x
             self.goal_pose.pose.position.y = self.initial_pose_y
             self.goal_pose.pose.orientation.z = self.initial_orientation_z
@@ -82,10 +68,9 @@ class GoHome(Node):
                 print('Goal failed!')
             else:
                 print('Goal has an invalid return status!')
-
-            self.navigator.lifecycleShutdown()
-            self.destroy_node()
-            rclpy.shutdown()
+            msg_move2=Float32MultiArray()
+            msg_move2.data = [self.initial_pose_x,self.initial_pose_y,self.initial_orientation_z]
+            self.move_publisher_.publish(msg_move2)
 
     
     def odom_callback(self, msg):
@@ -113,12 +98,6 @@ class GoHome(Node):
             self.goal_pose.pose.position.y = 0.0
             self.goal_pose.pose.orientation.w = 1.0
             self.goal_pose.pose.orientation.z = 0.0
-
-        else :
-            self.actual_pose_x = msg.pose.pose.position.x
-            self.actual_pose_y = msg.pose.pose.position.y
-            self.actual_orientation_z = msg.pose.pose.orientation.z
-            self.actual_orientation_w = msg.pose.pose.orientation.w
 
 
 def main(args=None):
