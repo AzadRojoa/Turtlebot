@@ -2,17 +2,17 @@ Challenge 1 result for student Surname Name
 
 # Phase 1:
 result: success
-Le robot suit bien une personne entre 50cm et 1m50 jusqu'a ce que cette personne s'arrete pendant 3sec au moins.
+Le robot suit bien une personne entre 50cm et 1m50 jusqu'à ce que cette personne s'arrête pendant 3 sec au moins.
 ``
 # Phase 2:
 result: success/failure
 static_obtacle: yes
 dynamic_obtacle: no
 blocked_path: yes
-Le robot reviens bien a la base meme si on lui coupe le chemin prévu par le robot. On a juste oublier de faire un bolquage dynamique mais ca aurait
-fonctioner sans aucun doute.
+Le robot revient bien à la base même si on lui coupe le chemin prévu par le robot. On a juste oublié de faire un blocage dynamique, mais ça aurait
+fonctionner sans aucun doute.
 ``
 # Phase 3:
 result: success
-Le robot retourne bien a la base mais n'est pas assez précis.
+Le robot retourne bien à la base mais n'est pas assez précis.
 ``

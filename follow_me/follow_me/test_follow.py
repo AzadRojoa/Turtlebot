@@ -18,18 +18,18 @@ class FollowMe(Node):
         #Quality of Service
         qos = QoSProfile(depth=5)
 
-        # TODO Distances de mesures
+        # Distances de mesures
         self.range_min = 0.5
         self.range_max = 1.2
 
-        #Distance moyenne de mesure
+        # Distance moyenne de mesure
         self.mid_range = (self.range_max + self.range_min) / 2
 
-        # TODO Angle de mesure (en deg)
+        # Angle de mesure (en deg)
         self.measure_angle_deg = 25
     
 
-        #Initialisation du Scan
+        # Initialisation du Scan
         self.scan_ranges = []
         self.activated_scan = False
 
@@ -37,13 +37,14 @@ class FollowMe(Node):
         self.linear_velocity = 0.0
         self.angular_velocity = 0.0
 
-        # TODO Défintion des gains de vitesse
+        # Défintion des gains de vitesse
         self.k_linear = 1
         self.k_angular = 5
-        #TODO Limitations de vitesses
+        # Limitations de vitesses
         self.max_linear_velocity = 30.0
         self.max_angular_velocity = 50.0
 
+        # Condition d'arret du folow_me
         self.run_follow_me = True
 
         # Variables pour la détection du mouvement
@@ -71,21 +72,18 @@ class FollowMe(Node):
 
 
         #Création du timer qui lance à chaque instance la fonction callback.
-        timer_period = 0.1  # TODO Période en secondes
+        timer_period = 0.1  # Période en secondes
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         #Calcul du centre de la plage de mesure
         self.x_center, self.y_center = FollowMe.polaire_vers_cartesien(0, self.mid_range)
-        self.get_logger().info(f'Position centrale de mesure: Pos_X = "{self.x_center}", Pos_Y = "{self.y_center}"')
         
 
     # Fonction du scan à chaque itération de mesure du lidar (toutes les 0.2 secondes)
     def scan_callback(self, msg):
+        # Véridfication de la condition d'arret
         if self.run_follow_me :
             self.activated_scan = True # Activation du scan
-
-            measure_angle_rad = math.radians(self.measure_angle_deg) #Conversion de l'angle de mesure en radians
-            nb_measure_half = int(measure_angle_rad / msg.angle_increment) #Nombre de mesure sur la plage de mesure
 
             # Combinaison des mesures des deux côtés
             self.scan_ranges = msg.ranges
@@ -105,18 +103,11 @@ class FollowMe(Node):
                         x, y = FollowMe.polaire_vers_cartesien(angle, valeur)
                         filtered_points.append([x,y])
                         self.get_logger().info(f"I {i} et ANGLE {angle}")
-            
-
-
-            #self.get_logger().info(f"Filtered point: {len(filtered_points)}")
-            
-
-
+                        
             # Vérification s'il existe des distances valides
             if not filtered_points:
                 self.linear_velocity = self.linear_velocity
                 self.angular_velocity = 0.0
-                self.get_logger().info("Aucun obstacle détecté dans la plage de mesure.")
             else:
                 # Calcul des coordonnées cartésiennes pour chaque mesure
                 x_total = 0.0
@@ -131,7 +122,6 @@ class FollowMe(Node):
                 count = len(filtered_points)
                 x_mean = x_total / count
                 y_mean = y_total / count
-                self.get_logger().info(f"Obstacle moyen: x = {x_mean}, y = {y_mean}")
 
                 # Calcul de l'erreur entre position centre et position moyenne des obstacles
                 x_delta = x_mean - self.x_center
@@ -149,18 +139,15 @@ class FollowMe(Node):
             if abs(self.linear_velocity) < 0.05 and abs(self.angular_velocity) < 0.1:
                 self.angular_velocity = 0.0
                 self.linear_velocity = 0.0
-                self.get_logger().info(f"Pas de mouvement {time.time()} {self.t0}")
                 if time.time() - self.t0 > 3.0:
-                    self.get_logger().info(f"Pas de mouvement depuis 3sec !!!!!!!!!!!!!!!")
                     msg_move = String()
-                    msg_move.data = 'Condition vraie'
+                    msg_move.data = 'Lancement du goHome'
                     self.move_publisher_.publish(msg_move)
                     self.run_follow_me = False
                 if self.was_mouving == False:
                     # Avant je bougeais mais plus maintenant
                     self.t0 = time.time()
             else:
-                self.get_logger().info(f"Mouvement!!")
                 self.was_mouving = True
                 self.t0 = time.time()
 
@@ -171,8 +158,6 @@ class FollowMe(Node):
             msg.linear.x = self.linear_velocity
             # Publication du message
             self.publisher_.publish(msg)
-        #if msg.linear.x != 0.0 and msg.linear.z != -0.0 :
-            #self.get_logger().info(f"Vitesses publiées -> LIN: {msg.linear.x}, ANG: {msg.angular.z}")
 
     def polaire_vers_cartesien(angle, distance):
     # Convertit des coordonnées polaires (angle, distance) en coordonnées cartésiennes (x, y).
@@ -190,10 +175,12 @@ class FollowMe(Node):
 def main(args=None):
     rclpy.init(args=args)
 
+    # Création du noeud
     followme = FollowMe()
     logger = rclpy.logging.get_logger('main_logger')
 
     try:
+        # Lancement du noeud
         rclpy.spin(followme)
     except KeyboardInterrupt:
         logger.info("Interruption manuelle détectée.")
@@ -202,8 +189,6 @@ def main(args=None):
         followme.destroy_node()
         logger.info("Nœud détruit. Retour au main().")
 
-    # Destruction explicite du noeud
-    logger.info("Ceci est un message depuis le main()")
     rclpy.shutdown()
 
 
