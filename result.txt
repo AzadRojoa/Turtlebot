@@ -9,7 +9,7 @@ result: success/failure
 static_obtacle: yes
 dynamic_obtacle: no
 blocked_path: yes
-Le robot revient bien à la base même si on lui coupe le chemin prévu par le robot. On a juste oublié de faire un blocage dynamique, mais ça aurait
+Le robot revient bien à la base même si on lui coupe le chemin prévu par le robot avec une petite colision
 fonctionner sans aucun doute.
 ``
 # Phase 3:
