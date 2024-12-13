@@ -17,6 +17,14 @@ def generate_launch_description():
         name='autonomous_nav2',
         output='screen'
     )
+    
+    # Node 3: Depuis le package `go_dock`
+    node2 = Node(
+        package='go_dock',
+        executable='go_dock',    # Nom de l'exécutable du nœud
+        name='go_dock',
+        output='screen'
+    )
 
     # Retourne les deux nœuds dans la description
     return LaunchDescription([
