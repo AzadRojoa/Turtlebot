@@ -19,7 +19,7 @@ def generate_launch_description():
     )
     
     # Node 3: Depuis le package `go_dock`
-    node2 = Node(
+    node3 = Node(
         package='go_dock',
         executable='go_dock',    # Nom de l'exécutable du nœud
         name='go_dock',
@@ -30,4 +30,5 @@ def generate_launch_description():
     return LaunchDescription([
         node1,
         node2,
+        node3,
     ])
