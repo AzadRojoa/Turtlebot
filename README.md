@@ -48,8 +48,47 @@ représentera la base du robot. Un pot de peinture par exemple serait un choix p
 peut simplifier la détection).
 
 
-# Rendu
+# Comment lancer le projet
 
-* Dépot Git à rendre avec le code inclus
-* 1 Vidéo démontrant le challenge
-* Inclure un fichier Result.txt
+## Prérequis
+
+- Ubuntu 22.04
+- ROS2 Humble
+- TurtleBot3
+- Un TurtleBot Burger
+- Une cartographie dans RVIZ
+
+## Étapes pour le lancement :
+1. Vérifier la configuration des variables d'environnement de TurtleBot pour s'assurer que le modèle "burger" est sélectionné.
+
+2. Lancer le bringup sur le robot via SSH :
+```bash
+ros2 launch turtlebot3_bringup robot.launch.py
+```
+3. Cloner ce répertoire dans le dossier ~/turtlebot3_ws/src :
+```bash
+git clone https://github.com/AzadRojoa/Turtlebot.git
+```
+
+4. Compiler le projet dans le dossier ~/turtlebot3_ws avec la commande :
+```bash
+cd ~/turtlebot3
+colcon build --symlink-install
+```
+5. Sourcer ROS2 :
+```bash
+source ~/turtlebot3_ws/install/setup.bash
+```
+6. Lancer le nœud de navigation avec la commande :
+```bash
+ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=$HOME/map.yaml
+```
+7. Définir une position de départ dans la stack de navigation.
+
+8. Lancer le fichier de lancement avec la commande :
+```bash
+ros2 launch follow_me launch_file.launch.py
+```
+9. Être subjugué par la fluidité et la perfection de l'algorithme.
+
+
