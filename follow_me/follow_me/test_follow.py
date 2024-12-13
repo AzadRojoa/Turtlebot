@@ -114,7 +114,7 @@ class FollowMe(Node):
 
             # Vérification s'il existe des distances valides
             if not filtered_points:
-                self.linear_velocity = 0.0
+                self.linear_velocity = self.linear_velocity
                 self.angular_velocity = 0.0
                 self.get_logger().info("Aucun obstacle détecté dans la plage de mesure.")
             else:
