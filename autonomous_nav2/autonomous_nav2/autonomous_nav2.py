@@ -9,7 +9,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from geometry_msgs.msg import Twist
-import time
+
 
 class GoHome(Node):
     def __init__(self):
@@ -35,7 +35,7 @@ class GoHome(Node):
         self.pose = self.create_subscription(
             PoseWithCovarianceStamped,
             'amcl_pose',
-            self.odom_callback,
+            self.init_pose_callback,
             qos_profile=qos_profile_sensor_data)
         self.get_logger().info(f'oui')
 
@@ -48,7 +48,7 @@ class GoHome(Node):
             self.goal_pose.pose.position.y = self.initial_pose_y
             self.goal_pose.pose.orientation.z = self.initial_orientation_z
             self.get_logger().info(f'RVIZ')
-            time.sleep(1000)
+            self.navigator.clearLocalCostmap()
             self.navigator.goToPose(self.goal_pose)
             i = 0
             while not self.navigator.isTaskComplete():
@@ -77,13 +77,12 @@ class GoHome(Node):
             msg_move2.data = [self.initial_pose_x,self.initial_pose_y,self.initial_orientation_z]
             self.move_publisher_.publish(msg_move2)
             msg = Twist()
-            msg.linear.x = self.linear_velocity
-            msg.angular.z = 0.0
+            msg.linear.x = 0.0
             msg.angular.z = 0.0
             self.publisher_cmd.publish(msg)
 
     
-    def odom_callback(self, msg):
+    def init_pose_callback(self, msg):
         self.get_logger().info(f'start')
         if self.initial_pose_x == 0 and self.initial_pose_y == 0 and self.initial_orientation_z == 0 :
             self.initial_pose_x = msg.pose.pose.position.x

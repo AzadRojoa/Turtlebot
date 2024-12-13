@@ -1,21 +1,18 @@
 Challenge 1 result for student Surname Name
 
 # Phase 1:
-result: success/failure
-comment: anything that you think should be known by the reviewer by it good or bad
-(keep it short). For example: "No collision during this phase but a close call
-near the door caused by..."
+result: success
+Le robot suit bien une personne entre 50cm et 1m50 jusqu'a ce que cette personne s'arrete pendant 3sec au moins.
 ``
 # Phase 2:
 result: success/failure
-static_obtacle: yes/no
-dynamic_obtacle: yes/no
-blocked_path: yes/no
-comment: anything that you think should be known by the reviewer by it good or bad
-(keep it short).
+static_obtacle: yes
+dynamic_obtacle: no
+blocked_path: yes
+Le robot reviens bien a la base meme si on lui coupe le chemin prévu par le robot. On a juste oublier de faire un bolquage dynamique mais ca aurait
+fonctioner sans aucun doute.
 ``
 # Phase 3:
-result: success/failure
-comment: anything that you think should be known by the reviewer by it good or bad
-(keep it short)."
+result: success
+Le robot retourne bien a la base mais n'est pas assez précis.
 ``
