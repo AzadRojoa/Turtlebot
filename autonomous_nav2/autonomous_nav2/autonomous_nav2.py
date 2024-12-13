@@ -8,6 +8,8 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
+from geometry_msgs.msg import Twist
+import time
 
 class GoHome(Node):
     def __init__(self):
@@ -22,6 +24,7 @@ class GoHome(Node):
         self.goal_pose = PoseStamped()
 
         self.move_publisher_ = self.create_publisher(Float32MultiArray,'move2',qos)
+        self.publisher_cmd = self.create_publisher(Twist, '/cmd_vel', qos)
 
         self.scan_sub = self.create_subscription(
             String,
@@ -44,6 +47,8 @@ class GoHome(Node):
             self.goal_pose.pose.position.x = self.initial_pose_x
             self.goal_pose.pose.position.y = self.initial_pose_y
             self.goal_pose.pose.orientation.z = self.initial_orientation_z
+            self.get_logger().info(f'RVIZ')
+            time.sleep(1000)
             self.navigator.goToPose(self.goal_pose)
             i = 0
             while not self.navigator.isTaskComplete():
@@ -71,6 +76,11 @@ class GoHome(Node):
             msg_move2=Float32MultiArray()
             msg_move2.data = [self.initial_pose_x,self.initial_pose_y,self.initial_orientation_z]
             self.move_publisher_.publish(msg_move2)
+            msg = Twist()
+            msg.linear.x = self.linear_velocity
+            msg.angular.z = 0.0
+            msg.angular.z = 0.0
+            self.publisher_cmd.publish(msg)
 
     
     def odom_callback(self, msg):
